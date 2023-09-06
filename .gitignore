@@ -1,3 +1,3 @@
 .gitignore
-*/screenshot.png
-*/video_output.avi
+*.png
+*.avi

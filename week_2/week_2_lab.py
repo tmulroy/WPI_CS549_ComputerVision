@@ -37,9 +37,10 @@ while cap.isOpened():
  # Our operations on the frame come here
  frame = cv.flip(frame,1)
 
- # Display the resulting frame
- cv.imshow('frame',frame)
+ # Border
+ frame = cv.copyMakeBorder(frame, 10, 10, 10, 10, cv.BORDER_CONSTANT, value=[0, 0, 255])
 
+# Timestamp
  # Get frame info to display text
  font = cv.FONT_HERSHEY_PLAIN
  height = frame.shape[0]
@@ -47,10 +48,35 @@ while cap.isOpened():
  timestamp_x_location = int(round(1.5 * (width / 3)))
  timestamp_y_location = int(round(2.75 * (height / 3)))
 
+ cv.putText(frame, str(datetime.now()), (timestamp_x_location, timestamp_y_location), cv.FONT_HERSHEY_PLAIN, 2,
+            (255, 255, 255), 2, cv.LINE_AA)
+
+ # Region Of Interest
+ timestamp_roi = frame[430:460, 320:640]
+ frame[10:40, 320:640] = timestamp_roi
+
+ # Add OpenCV Logo
+ logo_file = cv.imread('opencv_logo.png')
+ logo = cv.resize(logo_file, (0, 0), fx=0.5, fy=0.5)
+ if logo is None:
+  sys.exit('Could not read file')
+ logo_height = logo.shape[0]
+ logo_width = logo.shape[1]
+
+ src1 = frame[10:logo_height + 10, 10:logo_width + 10]
+
+ alpha = 0.5
+ beta = 1-alpha
+
+ frame[10:logo_height + 10, 10:logo_width + 10] = cv.addWeighted(src1,alpha,logo,beta, 0.0)
+ # frame[10:logo_height+10,10:logo_width+10] = logo
+
+ # Display the resulting frame
+ cv.imshow('frame',frame)
+
  # Save video only if 'v' key is pressed again
  if record_video_flag == True:
   print('saving video')
-  cv.putText(frame, str(datetime.now()), (timestamp_x_location, timestamp_y_location), cv.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2, cv.LINE_AA)
   out.write(frame)
 
  # Handle Keyboard Input
@@ -61,15 +87,6 @@ while cap.isOpened():
 
  elif k == ord('c'): # Take a Screenshot
   print('taking a screenshot')
-  print(f'frame shape: {frame.shape}')
-
-  cv.putText(frame, str(datetime.now()), (timestamp_x_location, timestamp_y_location), font, 2, (255, 255, 255), 2,
-             cv.LINE_AA)
-
-  # ROI
-  timestamp_roi = frame[415:445, 320:640]
-  frame[0:30, 320:640] = timestamp_roi
-
   cv.imwrite('screenshot.png', frame)
 
  elif k == ord('v'): # Handle Video Recording Logic
