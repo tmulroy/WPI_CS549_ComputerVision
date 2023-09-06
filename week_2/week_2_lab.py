@@ -13,7 +13,11 @@ from datetime import datetime
 # Video Capture
 cap = cv.VideoCapture(0)
 
+# Flags
 record_video_flag = False
+extract_color_flag = False
+rotate_image_flag = False
+threshold_image_flag = False
 
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'XVID')
@@ -37,41 +41,62 @@ while cap.isOpened():
  # Our operations on the frame come here
  frame = cv.flip(frame,1)
 
- # Border
+ # ADD BORDER
  frame = cv.copyMakeBorder(frame, 10, 10, 10, 10, cv.BORDER_CONSTANT, value=[0, 0, 255])
 
-# Timestamp
+# TIMESTAMP
  # Get frame info to display text
  font = cv.FONT_HERSHEY_PLAIN
- height = frame.shape[0]
- width = frame.shape[1]
- timestamp_x_location = int(round(1.5 * (width / 3)))
- timestamp_y_location = int(round(2.75 * (height / 3)))
+ rows = frame.shape[0]
+ cols = frame.shape[1]
+ timestamp_x_location = int(round(1.5 * (cols / 3)))
+ timestamp_y_location = int(round(2.75 * (rows / 3)))
 
  cv.putText(frame, str(datetime.now()), (timestamp_x_location, timestamp_y_location), cv.FONT_HERSHEY_PLAIN, 2,
             (255, 255, 255), 2, cv.LINE_AA)
 
- # Region Of Interest
+ # REGION OF INTEREST
  timestamp_roi = frame[430:460, 320:640]
  frame[10:40, 320:640] = timestamp_roi
 
- # Add OpenCV Logo
+ # ADD OPENCV LOGO
  logo_file = cv.imread('opencv_logo.png')
  logo = cv.resize(logo_file, (0, 0), fx=0.5, fy=0.5)
  if logo is None:
   sys.exit('Could not read file')
- logo_height = logo.shape[0]
- logo_width = logo.shape[1]
+ logo_rows = logo.shape[0]
+ logo_cols = logo.shape[1]
 
- src1 = frame[10:logo_height + 10, 10:logo_width + 10]
+ src1 = frame[10:logo_rows + 10, 10:logo_cols + 10]
 
  alpha = 0.5
  beta = 1-alpha
 
- frame[10:logo_height + 10, 10:logo_width + 10] = cv.addWeighted(src1,alpha,logo,beta, 0.0)
- # frame[10:logo_height+10,10:logo_width+10] = logo
+ frame[10:logo_rows + 10, 10:logo_cols + 10] = cv.addWeighted(src1,alpha,logo,beta, 0.0)
 
- # Display the resulting frame
+ # EXTRACT PINK COLOR
+ if extract_color_flag == True:
+  print('extracting color')
+
+  # Convert BGR to HSV
+  hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+
+  # define range of blue color in HSV
+  lower_pink = np.array([140, 50, 50])
+  upper_pink = np.array([160, 255, 255])
+  # Threshold the HSV image to get only blue colors
+  mask = cv.inRange(hsv, lower_pink, upper_pink)
+  # Bitwise-AND mask and original image
+  res = cv.bitwise_and(frame, frame, mask=mask)
+  frame[:,:] = res
+
+ # ROTATE THE IMAGE
+ if rotate_image_flag == True:
+  M = cv.getRotationMatrix2D(((cols - 1) / 2.0, (rows - 1) / 2.0), 10, 0.8)
+  frame[:,:] = cv.warpAffine(frame, M, (cols, rows))
+
+
+ # Display Frame
  cv.imshow('frame',frame)
 
  # Save video only if 'v' key is pressed again
@@ -79,7 +104,8 @@ while cap.isOpened():
   print('saving video')
   out.write(frame)
 
- # Handle Keyboard Input
+
+ # Handle Keyboard Inputs
  k = cv.waitKeyEx(1)
  if k == 27: # Exit Program
   print('Exiting program')
@@ -96,6 +122,28 @@ while cap.isOpened():
   else:
    print('recording video')
    record_video_flag = True
+
+ elif k == ord('e'): # Extract a color
+  print('pressed e')
+  if extract_color_flag == False:
+   extract_color_flag = True
+  else:
+   extract_color_flag = False
+
+ elif k == ord('r'): # Rotate image
+  print('pressed r')
+  if rotate_image_flag == False:
+   rotate_image_flag = True
+  else:
+   rotate_image_flag = False
+
+ elif k == ord('t'):
+  print('pressed t')
+  if threshold_image_flag == False:
+   threshold_image_flag = True
+  else:
+   threshold_image_flag = False
+
 
 # Release everything if job is finished
 cap.release()
