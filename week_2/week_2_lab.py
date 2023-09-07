@@ -9,6 +9,7 @@ https://docs.opencv.org/4.x/dc/d4d/tutorial_py_table_of_contents_gui.html
 import cv2 as cv
 import numpy as np
 from datetime import datetime
+import time
 
 # Video Capture
 cap = cv.VideoCapture(0)
@@ -18,6 +19,8 @@ record_video_flag = False
 extract_color_flag = False
 rotate_image_flag = False
 threshold_image_flag = False
+screenshot_flag = False
+blur_flag = False
 
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'XVID')
@@ -26,6 +29,9 @@ out = cv.VideoWriter('video_output.avi', fourcc, 20.0, (640, 480))
 if not cap.isOpened():
  print("Cannot open camera")
  exit()
+
+def handle_trackbar(value):
+ print(f'value: {value}')
 
 # Main Loop
 while cap.isOpened():
@@ -95,6 +101,26 @@ while cap.isOpened():
   M = cv.getRotationMatrix2D(((cols - 1) / 2.0, (rows - 1) / 2.0), 10, 0.8)
   frame[:,:] = cv.warpAffine(frame, M, (cols, rows))
 
+ # GRAYSCALE
+ if threshold_image_flag == True:
+  gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+  mask = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
+  res = cv.bitwise_and(frame,frame,mask=mask)
+  frame[:,:] = res
+
+ # GAUSSIAN BLUR
+ if blur_flag == True:
+  blur = cv.GaussianBlur(frame, (9, 9), 20)
+  frame[:,:] = blur
+  cv.createTrackbar('sigmaX','frame',5,30,handle_trackbar)
+  cv.createTrackbar('sigmaY','frame',5,30,handle_trackbar)
+
+ # SCREENSHOT
+ if screenshot_flag == True:
+  screenshot = frame[:,:]
+  cv.imwrite('screenshot.png', screenshot)
+  frame[:,:] = [255,255,255]
+  screenshot_flag = False
 
  # Display Frame
  cv.imshow('frame',frame)
@@ -104,7 +130,6 @@ while cap.isOpened():
   print('saving video')
   out.write(frame)
 
-
  # Handle Keyboard Inputs
  k = cv.waitKeyEx(1)
  if k == 27: # Exit Program
@@ -112,8 +137,11 @@ while cap.isOpened():
   break
 
  elif k == ord('c'): # Take a Screenshot
-  print('taking a screenshot')
-  cv.imwrite('screenshot.png', frame)
+  print('pressed c')
+  if screenshot_flag == True:
+   screenshot_flag = False
+  else:
+   screenshot_flag = True
 
  elif k == ord('v'): # Handle Video Recording Logic
   if record_video_flag == True:
@@ -144,6 +172,12 @@ while cap.isOpened():
   else:
    threshold_image_flag = False
 
+ elif k == ord('b'):
+  print('pressed b')
+  if blur_flag == False:
+   blur_flag = True
+  else:
+   blur_flag = False
 
 # Release everything if job is finished
 cap.release()
