@@ -13,6 +13,7 @@ import time
 
 # Video Capture
 cap = cv.VideoCapture(0)
+cv.namedWindow('Video')
 
 # Flags
 record_video_flag = False
@@ -21,6 +22,7 @@ rotate_image_flag = False
 threshold_image_flag = False
 screenshot_flag = False
 blur_flag = False
+sharpen_flag = False
 
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'XVID')
@@ -31,7 +33,10 @@ if not cap.isOpened():
  exit()
 
 def handle_trackbar(value):
- print(f'value: {value}')
+ pass
+
+cv.createTrackbar('sigmaX','Video',5,30,handle_trackbar)
+cv.createTrackbar('sigmaY','Video',5,30,handle_trackbar)
 
 # Main Loop
 while cap.isOpened():
@@ -96,34 +101,41 @@ while cap.isOpened():
   res = cv.bitwise_and(frame, frame, mask=mask)
   frame[:,:] = res
 
- # ROTATE THE IMAGE
+ # ROTATE IMAGE
  if rotate_image_flag == True:
   M = cv.getRotationMatrix2D(((cols - 1) / 2.0, (rows - 1) / 2.0), 10, 0.8)
-  frame[:,:] = cv.warpAffine(frame, M, (cols, rows))
+  frame = cv.warpAffine(frame, M, (cols, rows))
 
- # GRAYSCALE
+ # THRESHOLD
  if threshold_image_flag == True:
-  gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-  mask = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
-  res = cv.bitwise_and(frame,frame,mask=mask)
-  frame[:,:] = res
+  frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+  ret,thresh = cv.threshold(frame,127,255,cv.THRESH_BINARY)
+  frame = thresh
 
  # GAUSSIAN BLUR
  if blur_flag == True:
-  blur = cv.GaussianBlur(frame, (9, 9), 20)
-  frame[:,:] = blur
-  cv.createTrackbar('sigmaX','frame',5,30,handle_trackbar)
-  cv.createTrackbar('sigmaY','frame',5,30,handle_trackbar)
+  sigmaX = cv.getTrackbarPos('sigmaX','Video')
+  sigmaY = cv.getTrackbarPos('sigmaY','Video')
+  blur = cv.GaussianBlur(frame, (9, 9), sigmaX)
+  frame = blur
+
+ # SHARPEN
+ if sharpen_flag == True:
+  blur = cv.GaussianBlur(frame,(5,5),20)
+  frame = cv.addWeighted(frame,2,blur,-1,0,0)
 
  # SCREENSHOT
  if screenshot_flag == True:
   screenshot = frame[:,:]
   cv.imwrite('screenshot.png', screenshot)
-  frame[:,:] = [255,255,255]
+  if threshold_image_flag == True:
+   frame[:,:] = np.full((500,660),255,dtype=int)
+  else:
+   frame[:,:] = [255,255,255]
   screenshot_flag = False
 
  # Display Frame
- cv.imshow('frame',frame)
+ cv.imshow('Video',frame)
 
  # Save video only if 'v' key is pressed again
  if record_video_flag == True:
@@ -178,6 +190,12 @@ while cap.isOpened():
    blur_flag = True
   else:
    blur_flag = False
+ elif k == ord('s'):
+  print('pressed s')
+  if sharpen_flag == False:
+   sharpen_flag = True
+  else:
+   sharpen_flag = False
 
 # Release everything if job is finished
 cap.release()
