@@ -4,15 +4,16 @@ CS549
 Lab 3
 NOTE: Some code used from OpenCV documentation
 '''
-
+import cv2
 import cv2 as cv
 import numpy as np
 from datetime import datetime
 import time
+from sobel import CustomSobel
 
 # Video Capture
 cap = cv.VideoCapture(0)
-cv.namedWindow('Video')
+cv.namedWindow('Original')
 
 # Flags
 record_video_flag = False
@@ -26,6 +27,7 @@ x_key_flag = False
 y_key_flag = False
 s_key_flag = False
 canny_flag = False
+custom_ops_flag = False
 
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'XVID')
@@ -41,12 +43,12 @@ def handle_trackbar(value):
 
 
 # TRACKBARS
-cv.createTrackbar('sigmaX', 'Video', 5, 30, handle_trackbar)
-cv.createTrackbar('sigmaY', 'Video', 5, 30, handle_trackbar)
-cv.createTrackbar('Sobel X', 'Video', 5, 30, handle_trackbar)
-cv.createTrackbar('Sobel Y', 'Video', 5, 30, handle_trackbar)
-cv.createTrackbar('Canny Threshold 1', 'Video', 1, 5000, handle_trackbar)
-cv.createTrackbar('Canny Threshold 2', 'Video', 1, 5000, handle_trackbar)
+cv.createTrackbar('sigmaX', 'Original', 5, 30, handle_trackbar)
+cv.createTrackbar('sigmaY', 'Original', 5, 30, handle_trackbar)
+cv.createTrackbar('Sobel X', 'Original', 5, 30, handle_trackbar)
+cv.createTrackbar('Sobel Y', 'Original', 5, 30, handle_trackbar)
+cv.createTrackbar('Canny Threshold 1', 'Original', 1, 5000, handle_trackbar)
+cv.createTrackbar('Canny Threshold 2', 'Original', 1, 5000, handle_trackbar)
 
 
 # Main Loop
@@ -122,8 +124,8 @@ while cap.isOpened():
 
  # GAUSSIAN BLUR
  if blur_flag == True:
-  sigmaX = cv.getTrackbarPos('sigmaX','Video')
-  sigmaY = cv.getTrackbarPos('sigmaY','Video')
+  sigmaX = cv.getTrackbarPos('sigmaX','Original')
+  sigmaY = cv.getTrackbarPos('sigmaY','Original')
   blur = cv.GaussianBlur(frame, (9, 9), sigmaX)
   frame = blur
 
@@ -136,24 +138,37 @@ while cap.isOpened():
  if s_key_flag == True:
   if x_key_flag == True:
    y_key_flag == False
-   kernel_size = cv.getTrackbarPos('Sobel X', 'Video')
+   kernel_size = cv.getTrackbarPos('Sobel X', 'Original')
    if kernel_size % 2 == 0:
     kernel_size -= 1
-   frame = cv.Sobel(frame, cv.CV_64F, 1, 0, ksize=kernel_size)
+   blurred = cv.GaussianBlur(frame, (3, 3), 0)
+   gray = cv.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
+   frame = cv.Sobel(gray, cv.CV_64F, 1, 0, ksize=kernel_size)
   elif y_key_flag == True:
    x_key_flag == False
-   kernel_size = cv.getTrackbarPos('Sobel Y', 'Video')
+   kernel_size = cv.getTrackbarPos('Sobel Y', 'Original')
    if kernel_size % 2 == 0:
     kernel_size -= 1
-   frame = cv.Sobel(frame, cv.CV_64F, 0 , 1, ksize=kernel_size)
+   blurred = cv.GaussianBlur(frame, (3, 3), 0)
+   gray = cv.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
+   frame = cv.Sobel(gray, cv.CV_64F, 0 , 1, ksize=kernel_size)
 
 # CANNY EDGE DETECTOR
- if canny_flag:
-  min_val = cv.getTrackbarPos('Canny Threshold 1', 'Video')
-  max_val = cv.getTrackbarPos('Canny Threshold 2', 'Video')
-  # print(f'min_val: {min_val}')
-  # print(f'max_val: {max_val}')
+ if canny_flag == True:
+  min_val = cv.getTrackbarPos('Canny Threshold 1', 'Original')
+  max_val = cv.getTrackbarPos('Canny Threshold 2', 'Original')
   frame = cv.Canny(frame, min_val, max_val, True)
+
+# CUSTOM LAPLACE AND SOBEL OPERATORS
+ if custom_ops_flag == True:
+  cv.namedWindow('Sobel X')
+  cv.namedWindow('Sobel Y')
+  cs.namedWindow('Laplacian')
+  sobel_x_frame = CustomSobel(frame, dx=1, dy=0)
+  sobel_y_frame = CustomSobel(frame, dx=0, dy=1)
+  cv.imshow('Sobel X', sobel_x_frame)
+  cv.imshow('Sobel Y', sobel_y_frame)
+
 
  # SCREENSHOT
  if screenshot_flag == True:
@@ -171,12 +186,12 @@ while cap.isOpened():
   out.write(frame)
 
  # Display Frame
- cv.imshow('Video',frame)
+ cv.imshow('Original',frame)
 
  # Handle Keyboard Inputs
  k = cv.waitKeyEx(1)
- if k != -1:
-  print(f'k: {k}')
+ # if k != -1:
+ #  print(f'k: {k}')
 
  if k == 27: # Exit Program
   print('Exiting program')
@@ -232,6 +247,10 @@ while cap.isOpened():
  elif k == ord('d'): # Canny Edge Detector
   print('pressed d')
   canny_flag = not canny_flag
+
+ elif k == ord('4'): # Custom Operations
+  print('pressed 4')
+  custom_ops_flag = not custom_ops_flag
 
 # Release everything if job is finished
 cap.release()
