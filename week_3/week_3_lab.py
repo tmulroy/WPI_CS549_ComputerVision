@@ -1,7 +1,7 @@
 '''
 Tom Mulroy
 CS549
-Lab 1
+Lab 3
 NOTE: Some code used from OpenCV documentation
 '''
 
@@ -22,6 +22,9 @@ threshold_image_flag = False
 screenshot_flag = False
 blur_flag = False
 sharpen_flag = False
+x_key_flag = False
+y_key_flag = False
+s_key_flag = False
 
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'XVID')
@@ -31,11 +34,16 @@ if not cap.isOpened():
  print("Cannot open camera")
  exit()
 
+
 def handle_trackbar(value):
  pass
+ # TRACKBARS
+cv.createTrackbar('sigmaX', 'Video', 5, 30, handle_trackbar)
+cv.createTrackbar('sigmaY', 'Video', 5, 30, handle_trackbar)
+cv.createTrackbar('sobelX', 'Video', 5, 30, handle_trackbar)
+cv.createTrackbar('sobelY', 'Video', 5, 30, handle_trackbar)
 
-cv.createTrackbar('sigmaX','Video',5,30,handle_trackbar)
-cv.createTrackbar('sigmaY','Video',5,30,handle_trackbar)
+
 
 # Main Loop
 while cap.isOpened():
@@ -78,23 +86,20 @@ while cap.isOpened():
  logo_cols = logo.shape[1]
 
  src1 = frame[10:logo_rows + 10, 10:logo_cols + 10]
-
  alpha = 0.5
  beta = 1-alpha
-
  frame[10:logo_rows + 10, 10:logo_cols + 10] = cv.addWeighted(src1,alpha,logo,beta, 0.0)
 
  # EXTRACT PINK COLOR
  if extract_color_flag == True:
-  print('extracting color')
 
   # Convert BGR to HSV
   hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
 
-  # define range of blue color in HSV
+  # define range of pink color in HSV
   lower_pink = np.array([140, 50, 50])
   upper_pink = np.array([160, 255, 255])
-  # Threshold the HSV image to get only blue colors
+  # Threshold the HSV image to get only pink colors
   mask = cv.inRange(hsv, lower_pink, upper_pink)
   # Bitwise-AND mask and original image
   res = cv.bitwise_and(frame, frame, mask=mask)
@@ -119,9 +124,22 @@ while cap.isOpened():
   frame = blur
 
  # SHARPEN
- if sharpen_flag == True:
+ if s_key_flag == True and x_key_flag == False and y_key_flag == False:
   blur = cv.GaussianBlur(frame,(5,5),20)
   frame = cv.addWeighted(frame,2,blur,-1,0,0)
+
+# SOBEL OPERATORS
+ if s_key_flag == True:
+  if x_key_flag == True:
+   y_key_flag == False
+   kernel_size = cv.getTrackbarPos('sobelX', 'Video')
+   print(f'kernel_size: {kernel_size}')
+   # kernel size needs to be odd and no larger than 30
+   
+   frame = cv.Sobel(frame, cv.CV_64F, 1, 0, ksize=5)
+  elif y_key_flag == True:
+   x_key_flag == False
+   frame = cv.Sobel(frame, cv.CV_64F, 0 , 1, ksize=5)
 
  # SCREENSHOT
  if screenshot_flag == True:
@@ -143,6 +161,9 @@ while cap.isOpened():
 
  # Handle Keyboard Inputs
  k = cv.waitKeyEx(1)
+ if k != -1:
+  print(f'k: {k}')
+
  if k == 27: # Exit Program
   print('Exiting program')
   break
@@ -189,12 +210,25 @@ while cap.isOpened():
    blur_flag = True
   else:
    blur_flag = False
+
  elif k == ord('s'):
   print('pressed s')
-  if sharpen_flag == False:
-   sharpen_flag = True
+  s_key_flag = not s_key_flag
+
+ elif k == ord('x'):
+  print('pressed x')
+  if x_key_flag == True:
+   s_key_flag = False
+   x_key_flag = False
   else:
-   sharpen_flag = False
+   x_key_flag = True
+ elif k == ord('y'):
+  print('pressed y')
+  if y_key_flag == True:
+   s_key_flag = False
+   y_key_flag = False
+  else:
+   y_key_flag = True
 
 # Release everything if job is finished
 cap.release()
