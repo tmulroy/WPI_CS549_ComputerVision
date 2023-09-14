@@ -25,6 +25,7 @@ sharpen_flag = False
 x_key_flag = False
 y_key_flag = False
 s_key_flag = False
+canny_flag = False
 
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'XVID')
@@ -37,12 +38,15 @@ if not cap.isOpened():
 
 def handle_trackbar(value):
  pass
- # TRACKBARS
+
+
+# TRACKBARS
 cv.createTrackbar('sigmaX', 'Video', 5, 30, handle_trackbar)
 cv.createTrackbar('sigmaY', 'Video', 5, 30, handle_trackbar)
-cv.createTrackbar('sobelX', 'Video', 5, 30, handle_trackbar)
-cv.createTrackbar('sobelY', 'Video', 5, 30, handle_trackbar)
-
+cv.createTrackbar('Sobel X', 'Video', 5, 30, handle_trackbar)
+cv.createTrackbar('Sobel Y', 'Video', 5, 30, handle_trackbar)
+cv.createTrackbar('Canny Threshold 1', 'Video', 1, 5000, handle_trackbar)
+cv.createTrackbar('Canny Threshold 2', 'Video', 1, 5000, handle_trackbar)
 
 
 # Main Loop
@@ -132,14 +136,24 @@ while cap.isOpened():
  if s_key_flag == True:
   if x_key_flag == True:
    y_key_flag == False
-   kernel_size = cv.getTrackbarPos('sobelX', 'Video')
-   print(f'kernel_size: {kernel_size}')
-   # kernel size needs to be odd and no larger than 30
-   
-   frame = cv.Sobel(frame, cv.CV_64F, 1, 0, ksize=5)
+   kernel_size = cv.getTrackbarPos('Sobel X', 'Video')
+   if kernel_size % 2 == 0:
+    kernel_size -= 1
+   frame = cv.Sobel(frame, cv.CV_64F, 1, 0, ksize=kernel_size)
   elif y_key_flag == True:
    x_key_flag == False
-   frame = cv.Sobel(frame, cv.CV_64F, 0 , 1, ksize=5)
+   kernel_size = cv.getTrackbarPos('Sobel Y', 'Video')
+   if kernel_size % 2 == 0:
+    kernel_size -= 1
+   frame = cv.Sobel(frame, cv.CV_64F, 0 , 1, ksize=kernel_size)
+
+# CANNY EDGE DETECTOR
+ if canny_flag:
+  min_val = cv.getTrackbarPos('Canny Threshold 1', 'Video')
+  max_val = cv.getTrackbarPos('Canny Threshold 2', 'Video')
+  # print(f'min_val: {min_val}')
+  # print(f'max_val: {max_val}')
+  frame = cv.Canny(frame, min_val, max_val, True)
 
  # SCREENSHOT
  if screenshot_flag == True:
@@ -170,10 +184,7 @@ while cap.isOpened():
 
  elif k == ord('c'): # Take a Screenshot
   print('pressed c')
-  if screenshot_flag == True:
-   screenshot_flag = False
-  else:
-   screenshot_flag = True
+  screenshot_flag = not screenshot_flag
 
  elif k == ord('v'): # Handle Video Recording Logic
   if record_video_flag == True:
@@ -185,50 +196,42 @@ while cap.isOpened():
 
  elif k == ord('e'): # Extract a color
   print('pressed e')
-  if extract_color_flag == False:
-   extract_color_flag = True
-  else:
-   extract_color_flag = False
+  extract_color_flag = not extract_color_flag
 
  elif k == ord('r'): # Rotate image
   print('pressed r')
-  if rotate_image_flag == False:
-   rotate_image_flag = True
-  else:
-   rotate_image_flag = False
+  rotate_image_flag = not rotate_image_flag
 
- elif k == ord('t'):
+ elif k == ord('t'): # Threshold Image
   print('pressed t')
-  if threshold_image_flag == False:
-   threshold_image_flag = True
-  else:
-   threshold_image_flag = False
+  threshold_image_flag = not threshold_image_flag
 
- elif k == ord('b'):
+ elif k == ord('b'): # Blur Image
   print('pressed b')
-  if blur_flag == False:
-   blur_flag = True
-  else:
-   blur_flag = False
+  blur_flag = not blur_flag
 
  elif k == ord('s'):
   print('pressed s')
   s_key_flag = not s_key_flag
 
- elif k == ord('x'):
+ elif k == ord('x'): # Sobel X
   print('pressed x')
   if x_key_flag == True:
    s_key_flag = False
    x_key_flag = False
   else:
    x_key_flag = True
- elif k == ord('y'):
+ elif k == ord('y'): # Sobel Y
   print('pressed y')
   if y_key_flag == True:
    s_key_flag = False
    y_key_flag = False
   else:
    y_key_flag = True
+
+ elif k == ord('d'): # Canny Edge Detector
+  print('pressed d')
+  canny_flag = not canny_flag
 
 # Release everything if job is finished
 cap.release()
