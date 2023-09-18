@@ -9,7 +9,8 @@ import cv2 as cv
 import numpy as np
 from datetime import datetime
 import time
-from sobel import CustomSobel
+from sobel import custom_sobel
+from laplacian import custom_laplacian
 
 # Video Capture
 cap = cv.VideoCapture(0)
@@ -141,16 +142,16 @@ while cap.isOpened():
    kernel_size = cv.getTrackbarPos('Sobel X', 'Original')
    if kernel_size % 2 == 0:
     kernel_size -= 1
-   blurred = cv.GaussianBlur(frame, (3, 3), 0)
-   gray = cv.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
+   blurred = cv.GaussianBlur(frame, (3, 3), 50)
+   gray = cv.cvtColor(frame, cv2.COLOR_BGR2GRAY)
    frame = cv.Sobel(gray, cv.CV_64F, 1, 0, ksize=kernel_size)
   elif y_key_flag == True:
    x_key_flag == False
    kernel_size = cv.getTrackbarPos('Sobel Y', 'Original')
    if kernel_size % 2 == 0:
     kernel_size -= 1
-   blurred = cv.GaussianBlur(frame, (3, 3), 0)
-   gray = cv.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
+   blurred = cv.GaussianBlur(frame, (3, 3), 50)
+   gray = cv.cvtColor(frame, cv2.COLOR_BGR2GRAY)
    frame = cv.Sobel(gray, cv.CV_64F, 0 , 1, ksize=kernel_size)
 
 # CANNY EDGE DETECTOR
@@ -161,20 +162,24 @@ while cap.isOpened():
 
 # CUSTOM LAPLACE AND SOBEL OPERATORS
  if custom_ops_flag == True:
+  blurred = cv.GaussianBlur(frame, (9, 9), 1)
+  gray = cv.cvtColor(blurred, cv.COLOR_BGR2GRAY)
   cv.namedWindow('Sobel X')
   cv.namedWindow('Sobel Y')
-  cs.namedWindow('Laplacian')
-  sobel_x_frame = CustomSobel(frame, dx=1, dy=0)
-  sobel_y_frame = CustomSobel(frame, dx=0, dy=1)
+  cv.namedWindow('Laplacian')
+  sobel_x_frame = custom_sobel(gray, dx=1, dy=0)
+  sobel_y_frame = custom_sobel(gray, dx=0, dy=1)
+  # laplacian = cv.Laplacian(gray, ddepth=-1, ksize=3)
+  laplacian = custom_laplacian(gray)
   cv.imshow('Sobel X', sobel_x_frame)
   cv.imshow('Sobel Y', sobel_y_frame)
-
+  cv.imshow('Laplacian', laplacian)
 
  # SCREENSHOT
  if screenshot_flag == True:
   screenshot = frame[:,:]
   cv.imwrite('screenshot.png', screenshot)
-  if threshold_image_flag == True:
+  if threshold_image_flag or (s_key_flag and x_key_flag) or (s_key_flag and y_key_flag) or (canny_flag==True) == True:
    frame[:,:] = np.full((500,660),255,dtype=int)
   else:
    frame[:,:] = [255,255,255]
