@@ -16,6 +16,9 @@ from laplacian import custom_laplacian
 cap = cv.VideoCapture(0)
 cv.namedWindow('Original')
 
+# Instantiate sift for sift feature detection
+sift = cv.SIFT_create()
+
 # Flags
 record_video_flag = False
 extract_color_flag = False
@@ -29,6 +32,8 @@ y_key_flag = False
 s_key_flag = False
 canny_flag = False
 custom_ops_flag = False
+harris_detection_flag = False
+sift_detection_flag = False
 
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'XVID')
@@ -175,6 +180,20 @@ while cap.isOpened():
   cv.imshow('Sobel Y', sobel_y_frame)
   cv.imshow('Laplacian', laplacian)
 
+# Harris Corner Detection
+ if harris_detection_flag == True:
+  gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+  gray_float32 = np.float32(gray)
+  corners = cv.cornerHarris(gray_float32, 3, 5, 0.04)
+  dilated = cv.dilate(corners, None)
+  frame[dilated > 0.04 * dilated.max()] = [0, 0, 255]
+
+# SIFT Feature Detection
+ if sift_detection_flag == True:
+  gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+  kp = sift.detect(gray, None)
+  frame = cv.drawKeypoints(gray, kp, frame)
+
  # SCREENSHOT
  if screenshot_flag == True:
   screenshot = frame[:,:]
@@ -256,6 +275,14 @@ while cap.isOpened():
  elif k == ord('4'): # Custom Operations
   print('pressed 4')
   custom_ops_flag = not custom_ops_flag
+
+ elif k == ord('h'):
+  print('pressed h for harris corner detection')
+  harris_detection_flag = not harris_detection_flag
+
+ elif k == ord('f'):
+  sift_detection_flag = not sift_detection_flag
+
 
 # Release everything if job is finished
 cap.release()
