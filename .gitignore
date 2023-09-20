@@ -3,3 +3,4 @@
 *.avi
 */__pycache__/
 */.idea/*
+*/images/*
