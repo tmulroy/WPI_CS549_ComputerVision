@@ -26,7 +26,7 @@ sift = cv.SIFT_create()
 def sift_detection(image, sift=sift):
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     kp = sift.detect(gray, None)
-    sifted_img = cv.drawKeypoints(gray, kp, image)
+    sifted_img = cv.drawKeypoints(gray, kp, image, color=[0,255,0])
     return sifted_img
 
 # SCALE UP BY 20%
