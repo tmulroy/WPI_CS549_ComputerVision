@@ -29,7 +29,7 @@ class Sift:
         pass
 
     def generate_diff_of_gaussians(self):
-        gauss_cascade = 
+        gauss_cascade =
         for i in range(self.s+3):
             print(f'i: {i+1}')
 
