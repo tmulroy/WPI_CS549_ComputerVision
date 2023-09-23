@@ -2,9 +2,9 @@ import numpy as np
 import math
 import cv2 as cv
 from skimage.exposure import rescale_intensity
-# from sklearn.preprocessing import Normalizer
 import sklearn.preprocessing
 from scipy.ndimage import gaussian_filter
+from skimage.transform import downscale_local_mean
 
 '''
 This class implements the first two steps in the SIFT feature detection algorithm
@@ -25,42 +25,57 @@ class Sift:
         self.sigma = sigma
         self.s = s
         self.k = 2**(1/s)
-        kernel = [[1,4,6,4,1],
-                  [4,16,24,16,4],
-                  [6,24,36,24,6],
-                  [4,16,24,16,4],
-                  [1,4,6,4,1]]
-        self.gauss_kernel = np.array(kernel)*(1/256)
-
-
-
-    def scale_space(self):
-        pass
+        # self.k = (2*self.sigma)/self.s
 
     def generate_diff_of_gaussians(self):
-        row,col,ch = self.image.shape
-        gauss_imgs = [cv.cvtColor(self.image,cv.COLOR_BGR2GRAY)] # Set first image as the grayscale of image
+        octaves = []
+        gray = cv.cvtColor(self.image,cv.COLOR_BGR2GRAY)
+        gauss_imgs = [gray] # Set first image as the grayscale of image
+        diff_of_gauss = []
 
         # Generate an octave of Cascading Gaussian-Images
         # REFACTOR: make async as this could run into timing issues
+
+        sigma_incr = self.sigma
+        # print(f'sigma_cr before: {sigma_incr}')
+        # print(f'self.k: {self.k}')
         for i in range(self.s+3):
-            print(f'i: {i+1}\n')
             if i == 0:
-                gauss_imgs.append(gaussian_filter(gauss_imgs[0],1))
+                gauss_imgs.append(gaussian_filter(gauss_imgs[0],sigma=sigma_incr))
             else:
-                gauss_imgs.append(gaussian_filter(gauss_imgs[i-1], 1))
+                gauss_imgs.append(gaussian_filter(gauss_imgs[i-1], sigma=sigma_incr))
+            # print(f'sigma_incr: {sigma_incr}')
+            sigma_incr += self.k
+        # print(f'sigma_cr after: {sigma_incr}')
 
-        cv.imshow('gauss_imgs[0]', gauss_imgs[0])
-        cv.imshow('gauss_imgs[1]', gauss_imgs[1])
-        cv.imshow('gauss_imgs[2]', gauss_imgs[2])
-        cv.imshow('gauss_imgs[3]', gauss_imgs[3])
-        cv.imshow('gauss_imgs[4]', gauss_imgs[4])
-        cv.imshow('gauss_imgs[5]', gauss_imgs[5])
-        cv.imshow('gauss_imgs[6]', gauss_imgs[6])
-        cv.imshow('gauss_imgs[7]', gauss_imgs[7])
-        cv.imshow('gauss_imgs[8]', gauss_imgs[8])
-        cv.waitKey()
+        # Calculate Differnce of Gaussians
+        for idx,x in enumerate(gauss_imgs):
+            if idx != len(gauss_imgs)-1:
+                # print(f' gauss_imgs[{idx}] - gauss_imgs[{idx + 1}]')
+                diff = np.absolute(np.subtract(gauss_imgs[idx+1], gauss_imgs[idx]))
+                diff_of_gauss.append(diff)
 
+        octaves.append(diff_of_gauss)
+        # cv.imshow('diff_of_gauss[0])', diff_of_gauss[0])
+        # cv.imshow('diff_of_gauss[1])', diff_of_gauss[1])
+        # cv.imshow('diff_of_gauss[2)', diff_of_gauss[2])
+        # cv.imshow('diff_of_gauss[3)', diff_of_gauss[3])
+        # cv.imshow('diff_of_gauss[4])', diff_of_gauss[4])
+        # cv.imshow('diff_of_gauss[5])', diff_of_gauss[5])
+        # cv.imshow('diff_of_gauss[6])', diff_of_gauss[6])
+        # cv.imshow('diff_of_gauss[7])', diff_of_gauss[7])
+        # cv.waitKey()
+
+        # Down sample and repeat for new octave
+        downsampled = self.downsample(gray)
+
+    def downsample(self, image, factor=2):
+        '''
+        :param image: 2x2 numpy array GRAYSCALE
+        :return:
+        '''
+        downsampled_img = image[::2,::2]
+        return downsampled_img
 
     def generate_gaussian_kernel(self, x, y, sigma):
         '''
@@ -86,7 +101,6 @@ class Sift:
         # Need to normalize kernel
         # kernel = sklearn.preprocessing.normalize(kernel, norm='max')
         return kernel
-
 
     def convolve(self, image, kernel):
         '''
@@ -122,5 +136,5 @@ class Sift:
 
 if __name__ == '__main__':
     img = cv.imread('lenna.png')
-    sift = Sift(img,4,5)
+    sift = Sift(img,1,5)
     sift.generate_diff_of_gaussians()
