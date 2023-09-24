@@ -27,23 +27,34 @@ class Sift:
         self.k = 2**(1/s)
         # self.k = (2*self.sigma)/self.s
         self.gray = cv.cvtColor(self.image, cv.COLOR_BGR2GRAY)
+        self.num_of_octaves = 4
 
     def calculate_scale_space_extreme(self):
         '''
         This function calcualtes the scale space extrema
         :return:
         REFACTOR: make helper functions async
+                Does a new sigma need to double for each downsampled image?
         '''
-        octave = self.generate_octave(self.sigma, self.gray)
-        diff_of_gaus = self.generate_diff_of_gauss(octave)
-        downsampled = self.downsample(octave[-3])
 
-        # cv.imshow('Gauss 1', octave[0])
-        # cv.imshow('Gauss 2*sigma', octave[-3])
-        # cv.imshow('Downsampled', downsampled)
-        # cv.imshow('First DoG', diff_of_gaus[0])
-        # cv.imshow('Last DoG', diff_of_gaus[-1])
-        # cv.waitKey()
+        img = self.gray
+        diff_of_gauss_octaves = []
+        local_sigma = self.sigma
+        for i in range(0, self.num_of_octaves):
+            octave = self.generate_octave(local_sigma, img)
+            diff_of_gauss = self.generate_diff_of_gauss(octave)
+            diff_of_gauss_octaves.append(diff_of_gauss)
+            img = self.downsample(octave[-3])
+            local_sigma *= 2
+
+        # diff_of_gauss_octaves[octave index][image index]
+        self.local_extrema_detection(diff_of_gauss_octaves)
+
+    def local_extrema_detection(self, octaves):
+        for octave in octaves:
+            for img in octave:
+
+
 
     def generate_diff_of_gauss(self, octave):
         '''
