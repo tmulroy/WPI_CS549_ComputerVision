@@ -51,8 +51,59 @@ class Sift:
         self.local_extrema_detection(diff_of_gauss_octaves)
 
     def local_extrema_detection(self, octaves):
+        '''
+        :param octaves: list of Difference of Gaussian Octaves
+        :return:
+        REFACTOR: there has to be a more efficient way to calculate this than O(n^4)...
+        '''
+        imgs = []
+        pad = 1
+        keypoints = []
+        # Add padding to all images before iterating to find extrema O(n^2) (not accounting for cv.copyMakeBorder()
         for octave in octaves:
-            for img in octave:
+            for img_idx, img in enumerate(octave):
+                img = cv.copyMakeBorder(img,pad,pad,pad,pad,cv.BORDER_REPLICATE)
+
+        # Iterate through each DoG Image and determine if it is a local extrema
+        for octave in octaves:
+            for img_idx, img in enumerate(octave):
+                neighbor_extrema_flag = False
+                next_img_extrema_flag = False
+                prev_img_extrema_flag = False
+                rows,cols = img.shape
+                for y in np.arange(pad, rows):
+                    for x in np.arange(pad, cols):
+                        neighbors = img[y-pad:y+pad+1, x-pad:x+pad+1]
+                        pixel_val = neighbors[1,1]
+                        if pixel_val > np.max(neighbors) or pixel_val < np.min(neighbors):
+                            neighbor_extrema_flag = True
+
+                        if img_idx == 0: # Special Case: First Image in an Octave
+                            next_img = octave[1]
+                            next_img_window = next_img[y-pad:y+pad+1, x-pad:x+pad+1]
+                            if pixel_val > np.max(next_img_window) or pixel_val < np.min(next_img_window):
+                                next_img_extrema_flag = True
+                        elif  img_idx == len(octave) - 1: # Special Case: Last Image in an Octave
+                            prev_img = octave[img_idx - 1]
+                            prev_img_window = prev_img[y - pad:y + pad + 1, x - pad:x + pad + 1]
+                            if pixel_val > np.max(prev_img_window) or pixel_val < np.min(prev_img_window):
+                                prev_img_extrema_flag = True
+                        else: # Every image besides first and last of an octave
+                            next_img = octave[img_idx+1]
+                            next_img_window = next_img[y - pad:y + pad + 1, x - pad:x + pad + 1]
+                            prev_img = octave[img_idx-1]
+                            prev_img_window = prev_img[y - pad:y + pad + 1, x - pad:x + pad + 1]
+                            if pixel_val > np.max(next_img_window) or pixel_val < np.min(next_img_window):
+                                next_img_extrema_flag = True
+                            if pixel_val > np.max(prev_img_window) or pixel_val < np.min(prev_img_window):
+                                prev_img_extrema_flag = True
+
+
+
+                        if neighbor_extrema_flag or next_img_extrema_flag or prev_img_extrema_flag:
+                            # print(f'keypoint found: image {img_idx}, {y},{x}')
+                            keypoints.append((y,x))
+
 
 
 
