@@ -9,8 +9,8 @@ from skimage.transform import downscale_local_mean
 '''
 This class implements the first two steps in the SIFT feature detection algorithm
 1. scale-space extrema detection
-    a. Compute Differnce of Gaussians
-    b. Local Extrama Detection
+    a. Compute Difference of Gaussians
+    b. Local Extrema Detection
 2. Accurate Keypoint Localization
 
 Resources:
@@ -26,55 +26,60 @@ class Sift:
         self.s = s
         self.k = 2**(1/s)
         # self.k = (2*self.sigma)/self.s
+        self.gray = cv.cvtColor(self.image, cv.COLOR_BGR2GRAY)
 
-    def generate_diff_of_gaussians(self):
-        octaves = []
-        gray = cv.cvtColor(self.image,cv.COLOR_BGR2GRAY)
-        gauss_imgs = [gray] # Set first image as the grayscale of image
-        diff_of_gauss = []
+    def calculate_scale_space_extreme(self):
+        '''
+        This function calcualtes the scale space extrema
+        :return:
+        REFACTOR: make helper functions async
+        '''
+        octave = self.generate_octave(self.sigma, self.gray)
+        diff_of_gaus = self.generate_diff_of_gauss(octave)
+        downsampled = self.downsample(octave[-3])
 
-        # Generate an octave of Cascading Gaussian-Images
-        # REFACTOR: make async as this could run into timing issues
-
-        sigma_incr = self.sigma
-        # print(f'sigma_cr before: {sigma_incr}')
-        # print(f'self.k: {self.k}')
-        for i in range(self.s+3):
-            if i == 0:
-                gauss_imgs.append(gaussian_filter(gauss_imgs[0],sigma=sigma_incr))
-            else:
-                gauss_imgs.append(gaussian_filter(gauss_imgs[i-1], sigma=sigma_incr))
-            # print(f'sigma_incr: {sigma_incr}')
-            sigma_incr += self.k
-        # print(f'sigma_cr after: {sigma_incr}')
-
-        # Calculate Differnce of Gaussians
-        for idx,x in enumerate(gauss_imgs):
-            if idx != len(gauss_imgs)-1:
-                # print(f' gauss_imgs[{idx}] - gauss_imgs[{idx + 1}]')
-                diff = np.absolute(np.subtract(gauss_imgs[idx+1], gauss_imgs[idx]))
-                diff_of_gauss.append(diff)
-
-        octaves.append(diff_of_gauss)
-        # cv.imshow('diff_of_gauss[0])', diff_of_gauss[0])
-        # cv.imshow('diff_of_gauss[1])', diff_of_gauss[1])
-        # cv.imshow('diff_of_gauss[2)', diff_of_gauss[2])
-        # cv.imshow('diff_of_gauss[3)', diff_of_gauss[3])
-        # cv.imshow('diff_of_gauss[4])', diff_of_gauss[4])
-        # cv.imshow('diff_of_gauss[5])', diff_of_gauss[5])
-        # cv.imshow('diff_of_gauss[6])', diff_of_gauss[6])
-        # cv.imshow('diff_of_gauss[7])', diff_of_gauss[7])
+        # cv.imshow('Gauss 1', octave[0])
+        # cv.imshow('Gauss 2*sigma', octave[-3])
+        # cv.imshow('Downsampled', downsampled)
+        # cv.imshow('First DoG', diff_of_gaus[0])
+        # cv.imshow('Last DoG', diff_of_gaus[-1])
         # cv.waitKey()
 
-        # Down sample and repeat for new octave
-        downsampled = self.downsample(gray)
+    def generate_diff_of_gauss(self, octave):
+        '''
+        :param octave: list of numpy.ndarray((2,2))
+        :return: diff_of_gauss: list of numpy.ndarray((2,2))
+        This function calculates the difference of a list of adjacent gaussian-convolved images
+        '''
+        diff_of_gauss = []
+        for idx,x in enumerate(octave):
+            if idx != len(octave)-1:
+                diff = np.absolute(np.subtract(octave[idx+1], octave[idx]))
+                diff_of_gauss.append(diff)
+        return diff_of_gauss
+
+    def generate_octave(self, starting_sigma, gray_image):
+        '''
+        :param starting_sigma: int
+        :param gray_image: numpy.ndarry((2,2))
+        :return: octave: list of numpy.ndarray((2,2))
+        Generate an Octave of Original Gray Image Convolved with Increasing Sigmas (k*sigma)
+        Refactor: confirm that sigma is getting calculated correctly
+        '''
+        octave = []
+        sigma_incr = starting_sigma
+        for i in range(0, self.s+3):
+            octave.append(gaussian_filter(gray_image, sigma=sigma_incr))
+            sigma_incr = sigma_incr*self.k
+        return octave
 
     def downsample(self, image, factor=2):
         '''
         :param image: 2x2 numpy array GRAYSCALE
-        :return:
+        :param factor: every nth pixel to be taken from original image
+        :return: downsampled_img: numpy.ndarray((0.5*original,0.5*original))
         '''
-        downsampled_img = image[::2,::2]
+        downsampled_img = image[::factor,::factor]
         return downsampled_img
 
     def generate_gaussian_kernel(self, x, y, sigma):
@@ -137,4 +142,4 @@ class Sift:
 if __name__ == '__main__':
     img = cv.imread('lenna.png')
     sift = Sift(img,1,5)
-    sift.generate_diff_of_gaussians()
+    sift.calculate_scale_space_extreme()
