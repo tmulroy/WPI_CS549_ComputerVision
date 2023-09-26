@@ -12,6 +12,8 @@ This class implements the first two steps in the SIFT feature detection algorith
     a. Compute Difference of Gaussians
     b. Local Extrema Detection
 2. Accurate Keypoint Localization
+    a. Reject low contrast keypoints
+    b. Reject poorly localized along an edge
 
 Resources:
 https://pyimagesearch.com/2016/07/25/convolutions-with-opencv-and-python/
@@ -28,10 +30,42 @@ class Sift:
         # self.k = (2*self.sigma)/self.s
         self.gray = cv.cvtColor(self.image, cv.COLOR_BGR2GRAY)
         self.num_of_octaves = 4
+        self.__local_keypoints = {}
+        for i in range(0,self.num_of_octaves):
+            self.local_keypoints[i] = {}
+            for j in range(0,self.s+3):
+                self.local_keypoints[i][j] = []
+
+        self.__diff_of_gauss_octaves = []
+        self.__sigmas = {}
+
+    @property
+    def sigmas(self):
+        return self.__sigmas
+
+    @sigmas.setter
+    def sigmas(self, new_sigmas):
+        self.__sigmas = new_sigmas
+
+    @property
+    def diff_of_gauss_octaves(self):
+        return self.__diff_of_gauss_octaves
+
+    @diff_of_gauss_octaves.setter
+    def diff_of_gauss_octaves(self, octaves):
+        self.__diff_of_gauss_octaves = octaves
+
+    @property
+    def local_keypoints(self):
+        return self.__local_keypoints
+
+    @local_keypoints.setter
+    def local_keypoints(self, keypoints, octave_idx, img_idx):
+        self.local_keypoints[octave_idx][img_idx] = keypoints
 
     def calculate_scale_space_extreme(self):
         '''
-        This function calcualtes the scale space extrema
+        This function calculates the scale space extrema
         :return:
         REFACTOR: make helper functions async
                 Does a new sigma need to double for each downsampled image?
@@ -47,8 +81,11 @@ class Sift:
             img = self.downsample(octave[-3])
             local_sigma *= 2
 
-        # diff_of_gauss_octaves[octave index][image index]
         self.local_extrema_detection(diff_of_gauss_octaves)
+
+    def accurate_keypoint_localization(self):
+        print(f'sigmas: {self.sigmas}')
+        pass
 
     def local_extrema_detection(self, octaves):
         '''
@@ -58,19 +95,21 @@ class Sift:
         '''
         imgs = []
         pad = 1
-        keypoints = []
+        keypoints = {}
         # Add padding to all images before iterating to find extrema O(n^2) (not accounting for cv.copyMakeBorder()
         for octave in octaves:
             for img_idx, img in enumerate(octave):
                 img = cv.copyMakeBorder(img,pad,pad,pad,pad,cv.BORDER_REPLICATE)
 
         # Iterate through each DoG Image and determine if it is a local extrema
-        for octave in octaves:
+        for octave_idx, octave in enumerate(octaves):
+            keypoints[octave_idx] = {}
             for img_idx, img in enumerate(octave):
                 neighbor_extrema_flag = False
                 next_img_extrema_flag = False
                 prev_img_extrema_flag = False
                 rows,cols = img.shape
+                keypoints[octave_idx][img_idx] = []
                 for y in np.arange(pad, rows):
                     for x in np.arange(pad, cols):
                         neighbors = img[y-pad:y+pad+1, x-pad:x+pad+1]
@@ -102,10 +141,11 @@ class Sift:
 
                         if neighbor_extrema_flag or next_img_extrema_flag or prev_img_extrema_flag:
                             # print(f'keypoint found: image {img_idx}, {y},{x}')
-                            keypoints.append((y,x))
-
-
-
+                            # keypoints.append((y,x))
+                            # img_keypoints.append((y,x))
+                            keypoints[octave_idx][img_idx].append((y,x))
+                            # self.local_keypoints[octave_idx][img_idx] = (y,x)
+                self.local_keypoints[octave_idx][img_idx] = keypoints[octave_idx][img_idx]
 
     def generate_diff_of_gauss(self, octave):
         '''
@@ -119,6 +159,18 @@ class Sift:
                 diff = np.absolute(np.subtract(octave[idx+1], octave[idx]))
                 diff_of_gauss.append(diff)
         return diff_of_gauss
+
+    def generate_scales(self):
+        sigmas_dict = {}
+        sigma_pointer = 0
+        sigma_incr = self.sigma
+        for i in range(0, self.num_of_octaves):
+            sigmas_dict[i] = {}
+            for j in range(0, self.s+3):
+                sigma_incr = sigma_incr*self.k
+                sigmas_dict[i][j] = sigma_incr
+                sigma_pointer += 1
+        self.sigmas = sigmas_dict
 
     def generate_octave(self, starting_sigma, gray_image):
         '''
@@ -205,3 +257,7 @@ if __name__ == '__main__':
     img = cv.imread('lenna.png')
     sift = Sift(img,1,5)
     sift.calculate_scale_space_extreme()
+    # sift.accurate_keypoint_localization()
+    # sift.generate_scales()
+    # print(sift.sigmas)
+    print(sift.local_keypoints[0][0])
