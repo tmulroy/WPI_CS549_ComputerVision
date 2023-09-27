@@ -104,16 +104,12 @@ class Sift:
         self.local_extrema_detection(diff_of_gauss_octaves)
 
     def accurate_keypoint_localization(self):
-        '''
-        :return:
-        '''
         Kx = -1 * np.array([[-1, 0, 1]])
-        Ky = -1 * np.array([[-1], [0], [1]])
-        accurate_keypoints = {}
-        for octave_idx, imgs in self.diff_of_gauss_imgs.items():
-            accurate_keypoints[octave_idx] = {}
-            for img_idx, img in enumerate(imgs):
-                accurate_keypoints[octave_idx][img_idx] = []
+        # Ky = -1 * np.array([[-1], [0], [1]])
+        for octave_idx, octave in enumerate(self.diff_of_gauss_imgs):
+            self.accurate_keypoints[octave_idx] = {}
+            for img_idx, img in enumerate(self.diff_of_gauss_imgs[octave_idx]):
+                self.accurate_keypoints[octave_idx][img_idx] = []
                 dx = ndimage.convolve(img, Kx)
                 # dy = ndimage.convolve(img, Ky)
                 # partial_d = np.sqrt(dx ** 2 + dy ** 2)
@@ -125,24 +121,20 @@ class Sift:
                 # ddy_inv = ndimage.convolve(dy_inv, Ky)
                 # partial_dd_inv = np.sqrt(ddx_inv**2 + ddy_inv**2)
                 x_hat = np.multiply(-ddx_inv, dx)
-                # print(f'printing xhat: {x_hat.shape}')
 
                 # Calculate the extrema of D at x_hat
                 dx_T = ndimage.convolve(np.transpose(img), Kx)
                 d_term = np.multiply(0.5, np.multiply(dx_T, x_hat))
                 extrema = np.add(img, d_term)
-                # print(f'extrema shape: {extrema.shape}')
 
-                # Discard extrema its abs is < 0.03
+                # Discard extrema if abs is < 3
                 for y in range(0, extrema.shape[0]):
                     for x in range(0, extrema.shape[1]):
                         if abs(extrema[y,x]) > 3:
-                            # print(f'extrema val: {extrema[y,x]}')
-                            accurate_keypoints[octave_idx][img_idx].append((y,x))
+                            self.accurate_keypoints[octave_idx][img_idx].append((y,x))
 
-                percentage = 100 * round((len(accurate_keypoints[octave_idx][img_idx]) / (len(img) ** 2)), 4)
-                print(f'octave[{octave_idx}],image[{img_idx}] has {len(accurate_keypoints[octave_idx][img_idx])} keypoints ({percentage}%)')
-
+                percentage = 100 * round((len(self.accurate_keypoints[octave_idx][img_idx]) / (len(img) ** 2)), 4)
+                print(f'octave[{octave_idx}],image[{img_idx}] has {len(self.accurate_keypoints[octave_idx][img_idx])} accurate keypoints ({percentage}%)')
 
     def local_extrema_detection(self, octaves):
         '''
@@ -218,8 +210,23 @@ class Sift:
         for row in range(0, features.shape[0]):
             for col in range(0, features.shape[1]):
                 if (row,col) in self.local_keypoints[0][0]:
-                    # print(f'({row},{col}) is a keypoint')
                     features[row,col] = [0,255,0]
+        cv.imshow('Features', features)
+        cv.waitKey(5000)
+
+    def show_accurate_extrema(self):
+        features = self.image
+        # print(f'len keypoints: {len(self.accurate_keypoints[0][0])}')
+        # for row in range(0, features.shape[0]):
+        #     for col in range(0, features.shape[1]):
+        #         if (row, col) in self.accurate_keypoints[0][0]:
+        #             # print(f'({row}, {col})')
+        #             features[row, col] = [0, 255, 0]
+
+        for keypoint_idx, keypoint in enumerate(self.accurate_keypoints[0][0]):
+            # print(f'index: {keypoint_idx}: {keypoint}')
+            features[keypoint] = [0,255,0]
+            
         cv.imshow('Features', features)
         cv.waitKey()
 
@@ -334,5 +341,6 @@ if __name__ == '__main__':
     sift = Sift(img,1,5)
     sift.calculate_scale_space_extreme()
     sift.accurate_keypoint_localization()
-    sift.show_local_extrema()
+    # sift.show_local_extrema()
+    sift.show_accurate_extrema()
     # sift.generate_scales()
