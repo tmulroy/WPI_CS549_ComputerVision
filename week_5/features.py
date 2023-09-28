@@ -5,6 +5,11 @@ sift = cv.SIFT_create()
 surf = cv.xfeatures2d.SURF_create(25000)
 bf = cv.BFMatcher()
 
+# FLANN Parameters
+FLANN_INDEX_KDTREE = 1
+index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+search_params = dict(checks=50)
+flann = cv.FlannBasedMatcher(index_params,search_params)
 
 # Images
 book = cv.imread('book.jpg')
@@ -40,7 +45,32 @@ surf_bf = cv.drawMatches(gray_book, kp_surf_book, gray_table, kp_surf_table, bf_
 
 # FLANN Feature Matching
 # SIFT
+flann_sift_matches = flann.knnMatch(des_sift_book, des_sift_table, k=2)
+matchesMask_sift = [[0,0] for i in range(len(flann_sift_matches))]
+# ratio test
+for i,(m,n) in enumerate(flann_sift_matches):
+    if m.distance < 0.7*n.distance:
+        matchesMask_sift[i]=[1,0]
+
+draw_params_flann_sift = dict(matchColor = (0,255,0),
+                               singlePointColor = (255,0,0),
+                               matchesMask = matchesMask_sift,
+                               flags = cv.DrawMatchesFlags_DEFAULT)
+flann_sift_img = cv.drawMatchesKnn(gray_book, kp_sift_book, gray_table, kp_sift_table, flann_sift_matches,None, **draw_params_flann_sift)
+
 # SURF
+flann_surf_matches = flann.knnMatch(des_surf_book, des_surf_table, k=2)
+matchesMask_surf = [[0,0] for i in range(len(flann_surf_matches))]
+# ratio test
+for i,(m,n) in enumerate(flann_surf_matches):
+    if m.distance < 0.7*n.distance:
+        matchesMask_surf[i]=[1,0]
+draw_params_flann_surf = dict(matchColor = (0,255,0),
+                               singlePointColor = (255,0,0),
+                               matchesMask = matchesMask_surf,
+                               flags = cv.DrawMatchesFlags_DEFAULT)
+flann_surf_img = cv.drawMatchesKnn(gray_book, kp_surf_book, gray_table, kp_surf_table, flann_surf_matches,None, **draw_params_flann_surf)
+
 
 # Show Images
 # SIFT Keypoints
@@ -51,14 +81,18 @@ cv.imshow('SIFT Table Keypoints', img_sift_table)
 cv.imshow('SURF Book Keypoints', img_surf_book)
 cv.imshow('SURF Table Keypoints', img_surf_table)
 
-# SIFT with Brute Force Matching
-# cv.imshow('SIFT with Brute Force', bf_sift_matches)
+# SIFT
+# Brute Force
 cv.imshow('SIFT with Brute Force', sift_bf)
 
-# SIFT with FLANN Matching
+# FLANN
+cv.imshow('SIFT with FLANN', flann_sift_img)
 
-# SURF with Brute Force Matching
-# cv.imshow('SURF with Brute Force', bf_surf_matches)
-# SURF with FLANN Matching
 
+# SURF
+# Brute Force
+cv.imshow('SURF with Brute Force', surf_bf)
+
+# FLANN
+cv.imshow('SURF with FLANN', flann_surf_img)
 cv.waitKey()
