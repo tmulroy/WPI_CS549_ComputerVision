@@ -1,5 +1,6 @@
 .gitignore
 *.png
+*.jpg
 *.avi
 */__pycache__/
 */.idea/*

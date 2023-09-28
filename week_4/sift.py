@@ -12,7 +12,7 @@ This class implements the first two steps in the SIFT feature detection algorith
     b. Local Extrema Detection
 2. Accurate Keypoint Localization
     a. Reject low contrast keypoints
-    b. Reject poorly localized along an edge
+    b. Not Implemented: Reject poorly localized along an edge
 
 Resources:
 https://pyimagesearch.com/2016/07/25/convolutions-with-opencv-and-python/
@@ -21,13 +21,14 @@ https://pyimagesearch.com/2016/07/25/convolutions-with-opencv-and-python/
 class Sift:
     def __init__(self, image, sigma, s):
         self.image = image
+        self.gray = cv.cvtColor(self.image, cv.COLOR_BGR2GRAY)
+        self.__image_with_features = []
         self.gaussian_imgs = []
         self.__diff_of_gauss_imgs = {}
         self.sigma = sigma
         self.__sigmas = {}
         self.s = s
         self.k = 2**(1/s)
-        self.gray = cv.cvtColor(self.image, cv.COLOR_BGR2GRAY)
         self.num_of_octaves = 4
 
         self.__local_keypoints = {}
@@ -38,6 +39,15 @@ class Sift:
 
         self.__diff_of_gauss_octaves = []
         self.__accurate_keypoints = {}
+
+
+    @property
+    def image_with_features(self):
+        return self.__image_with_features
+
+    @image_with_features.setter
+    def image_with_features(self, new):
+        self.__image_with_features = new
 
     @property
     def diff_of_gauss_imgs(self):
@@ -216,17 +226,9 @@ class Sift:
 
     def show_accurate_extrema(self):
         features = self.image
-        # print(f'len keypoints: {len(self.accurate_keypoints[0][0])}')
-        # for row in range(0, features.shape[0]):
-        #     for col in range(0, features.shape[1]):
-        #         if (row, col) in self.accurate_keypoints[0][0]:
-        #             # print(f'({row}, {col})')
-        #             features[row, col] = [0, 255, 0]
-
         for keypoint_idx, keypoint in enumerate(self.accurate_keypoints[0][0]):
-            # print(f'index: {keypoint_idx}: {keypoint}')
             features[keypoint] = [0,255,0]
-            
+        self.image_with_features = features
         cv.imshow('Features', features)
         cv.waitKey()
 
