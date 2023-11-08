@@ -16,7 +16,7 @@ r,_,c = lines.shape
 A = []
 B = []
 for line in lines:
-    rho,theta = line[0]
+    rho, theta = line[0]
     a = np.cos(theta)
     b = np.sin(theta)
     x0 = a*rho
@@ -25,8 +25,8 @@ for line in lines:
     y1 = int(y0 + 1000*(a))
     x2 = int(x0 - 1000*(-b))
     y2 = int(y0 - 1000*(a))
-    A.append([rho,theta])
-    B.append(b)
+    A.append([a, b])
+    B.append(rho)
     cv.line(img_color,(x1,y1),(x2,y2),(0,0,255),2)
 # cv.imwrite('houghlines3.jpg', img)
 
@@ -36,8 +36,8 @@ B = np.array(B)
 # Calculate t = ((A^T) * A)^1 * ((A^T) * b)
 term1 = np.power(np.dot(np.transpose(A),A),-1)
 term2 = np.dot(np.transpose(A), B)
+
 t = np.dot(term1, term2)
-print(t.shape)
 coords = (t[0].astype(np.int64), t[1].astype(np.int64))
 print(coords)
 cv.circle(img_color, coords, 20, (0,0,255), cv.FILLED)
@@ -53,9 +53,3 @@ cv.circle(img_color, coords, 20, (0,0,255), cv.FILLED)
 
 cv.imshow('vanishing point', img_color)
 cv.waitKey()
-# Show Image
-# plt.subplot(121),plt.imshow(img_color)
-# plt.title('Original Image'), plt.xticks([]), plt.yticks([])
-# plt.subplot(122),plt.imshow(edges,cmap = 'gray')
-# plt.title('Edge Image'), plt.xticks([]), plt.yticks([])
-# plt.show()
