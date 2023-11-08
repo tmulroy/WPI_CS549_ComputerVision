@@ -67,16 +67,9 @@ for i in range(len(objpoints)):
 print(f'total re-projection error: {mean_error/len(objpoints)}')
 
 # Save Calibration Matrix, Distortion Coefficients, and Reprojection Error as npy files
-with open('./npy_output_files/calibration_matrix_part2.npy', 'wb') as f:
-    np.save(f, mtx)
-with open('./npy_output_files/distortion_coeff_part2.npy', 'wb') as f2:
-    np.save(f2, dist)
-with open('./npy_output_files/reprojection_error_part2.npy', 'wb') as f3:
-    np.save(f3, mean_error/len(objpoints))
-
-# Cleanup
+# Save camera calibration, dist coeff
+with open('./B.npz', 'wb') as f:
+    np.savez(f, mtx=mtx, dist=dist, rvecs=rvecs, tvecs=tvecs)
 f.close()
-f2.close()
-f3.close()
 
 cv.destroyAllWindows()
